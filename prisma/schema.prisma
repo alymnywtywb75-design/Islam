@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id            String   @id @default(cuid())
+  name          String   @default("مسلم")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  silentMode    Boolean  @default(false)
+  rebootMode    Boolean  @default(false)
+  streakDays    Int      @default(0)
+  totalActiveDays Int    @default(0)
+  totalLostDays Int      @default(0)
+  lastActiveAt  DateTime?
+  prayers       PrayerRecord[]
+  quranSessions QuranSession[]
+  adhkarLogs    AdhkarLog[]
+  deeds         GoodDeed[]
+  dailyReports  DailyReport[]
+}
+
+model PrayerRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String
+  prayer    String   // fajr, dhuhr, asr, maghrib, isha
+  status    String   @default("missed") // prayed, late, missed, qada
+  khushu    Int      @default(0) // 1-10
+  onTime    Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+  user      UserProfile @relation(fields: [userId], references: [id])
+  @@unique([userId, date, prayer])
+}
+
+model QuranSession {
+  id          String   @id @default(cuid())
+  userId      String
+  surahNumber Int
+  surahName   String
+  ayahFrom    Int
+  ayahTo      Int
+  mode        String   @default("reading") // reading, memorization, revision
+  masteryScore Int     @default(0) // 0-100
+  mistakes    String?  // JSON: list of ayah numbers with mistakes
+  duration    Int      @default(0) // seconds
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        UserProfile @relation(fields: [userId], references: [id])
+}
+
+model QuranProgress {
+  id          String  @id @default(cuid())
+  userId      String
+  surahNumber Int
+  surahName   String
+  totalAyahs  Int
+  memorizedAyahs Int   @default(0)
+  weaknessMap String?  // JSON: ayah -> weakness score
+  lastReviewed DateTime?
+  @@unique([userId, surahNumber])
+}
+
+model AdhkarLog {
+  id        String   @id @default(cuid())
+  userId    String
+  dhikrId   String
+  dhikrText String
+  category  String   // morning, evening, sleep, afterPrayer, anxiety, sadness, focus, energy
+  count     Int      @default(1)
+  targetCount Int    @default(33)
+  completed Boolean  @default(false)
+  timestamp DateTime @default(now())
+  user      UserProfile @relation(fields: [userId], references: [id])
+}
+
+model GoodDeed {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   @default("intention") // intention, suggestion, completed
+  title       String
+  description String?
+  category    String?
+  impact      String?  // spiritual, continuity, weekly
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  user        UserProfile @relation(fields: [userId], references: [id])
+}
+
+model DailyReport {
+  id          String   @id @default(cuid())
+  userId      String
+  date        String
+  prayerScore Int      @default(0)
+  quranScore  Int      @default(0)
+  adhkarScore Int      @default(0)
+  deedsScore  Int      @default(0)
+  overallScore Int     @default(0)
+  spiritualState String @default("neutral") // excellent, good, neutral, weak, critical
+  summary     String?
+  losses      String?  // JSON
+  gains       String?  // JSON
+  createdAt   DateTime @default(now())
+  user        UserProfile @relation(fields: [userId], references: [id])
+  @@unique([userId, date])
+}
+
+model CommunityAchievement {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // khatma, challenge, streak, milestone
+  title       String
+  description String?
+  isAnonymous Boolean  @default(true)
+  likes       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model WorshipCompanion {
+  id          String   @id @default(cuid())
+  userId      String
+  companionId String?
+  goal        String
+  progress    Int      @default(0)
+  isActive    Boolean  @default(true)
+  startedAt   DateTime @default(now())
+  @@unique([userId])
+}
